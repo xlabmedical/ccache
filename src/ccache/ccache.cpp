@@ -2614,7 +2614,7 @@ do_cache_compilation(Context& ctx)
 
     // Replace the conan paths and make includes relative to that. Conan file
     // hash must be included!
-    for (int i = 0; i < original_args_to_hash.size(); ++i) {
+    for (auto i = 0ull; i < original_args_to_hash.size(); ++i) {
       auto arg = original_args_to_hash[i];
       std::replace(arg.begin(), arg.end(), '\\', '/');
       for(const auto& pth : *conan_paths) {
