@@ -54,6 +54,8 @@ public:
 
   bool absolute_paths_in_stderr() const;
   const std::string& base_dir() const;
+  const std::string& conanfile() const;
+  const std::string& conan_paths() const;
   const std::string& cache_dir() const;
   const std::string& compiler() const;
   const std::string& compiler_check() const;
@@ -169,6 +171,8 @@ private:
 
   bool m_absolute_paths_in_stderr = false;
   std::string m_base_dir;
+  std::string m_conanfile;
+  std::string m_conan_paths;
   std::string m_cache_dir;
   std::string m_compiler;
   std::string m_compiler_check = "mtime";
@@ -240,6 +244,18 @@ inline const std::string&
 Config::base_dir() const
 {
   return m_base_dir;
+}
+
+inline const std::string&
+Config::conanfile() const
+{
+  return m_conanfile;
+}
+
+inline const std::string&
+Config::conan_paths() const
+{
+  return m_conan_paths;
 }
 
 inline const std::string&

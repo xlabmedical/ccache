@@ -31,6 +31,7 @@
 #include <ccache/util/string.hpp>
 
 #include <algorithm>
+#include <fstream>
 
 namespace fs = util::filesystem;
 
@@ -121,6 +122,30 @@ rewrite_source_paths(const Context& ctx, std::string_view file_content)
   } else {
     return std::nullopt;
   }
+}
+
+std::optional<std::vector<std::string>>
+read_conan_paths_contents(const Context& ctx)
+{
+  ASSERT(!ctx.config.conan_paths().empty());
+
+  std::ifstream input_file(ctx.config.conan_paths());
+  ASSERT(input_file.is_open());
+
+  std::vector<std::string> result;
+  result.reserve(10);
+
+  std::string line;
+  while (std::getline(input_file, line)) {
+    if (line.find("PACKAGE_DIR") != std::string::npos) {
+      size_t start_pos = line.find('\"') + 1; // Start position after the quote
+      size_t end_pos = line.find_last_of('\"');
+      std::string path = line.substr(start_pos, end_pos - start_pos);
+      result.push_back(path);
+    }
+  }
+
+  return result;
 }
 
 // Replace absolute paths with relative paths in the provided dependency file.

@@ -1570,6 +1570,19 @@ hash_common_info(const Context& ctx,
     }
   }
 
+  if(!ctx.config.conan_paths().empty() && ctx.config.conanfile().empty()) {
+    LOG_RAW("Invalid combination of conan_paths and conanfile");
+    return tl::unexpected(Statistic::error_hashing_extra_file);
+  }
+  if(!ctx.config.conanfile().empty()) {
+    ASSERT(!ctx.config.conan_paths().empty());
+    LOG("Hashing conanfile {}", ctx.config.conanfile());
+    hash.hash_delimiter("conanfile");
+    if (!hash_binary_file(ctx, hash, pstr(ctx.config.conanfile()))) {
+      return tl::unexpected(Statistic::error_hashing_extra_file);
+    }
+  }
+
   if (!ctx.config.extra_files_to_hash().empty()) {
     for (const auto& path :
          util::split_path_list(ctx.config.extra_files_to_hash())) {
@@ -2590,13 +2603,39 @@ do_cache_compilation(Context& ctx)
   Hash direct_hash = common_hash;
   init_hash_debug(ctx, direct_hash, 'd', "DIRECT MODE", debug_text_file);
 
-  Args args_to_hash = processed.preprocessor_args;
-  args_to_hash.push_back(processed.extra_args_to_hash);
+  Args original_args_to_hash = processed.preprocessor_args;
+  original_args_to_hash.push_back(processed.extra_args_to_hash);
+
+  std::optional<Args> modified_args_to_hash = {};
+  if (!ctx.config.conan_paths().empty()) {
+    modified_args_to_hash = Args{};
+    const auto conan_paths = Depfile::read_conan_paths_contents(ctx);
+    ASSERT(conan_paths.has_value());
+
+    // Replace the conan paths and make includes relative to that. Conan file
+    // hash must be included!
+    for (int i = 0; i < original_args_to_hash.size(); ++i) {
+      auto arg = original_args_to_hash[i];
+      std::replace(arg.begin(), arg.end(), '\\', '/');
+      for(const auto& pth : *conan_paths) {
+        if(arg.find(pth) != std::string::npos) {
+          arg = arg.replace(arg.find(pth), pth.length(), "{conan_package}");
+          LOG("conan_paths: replaced {} with {}", original_args_to_hash[i], arg);
+          break;
+        }
+      }
+
+      modified_args_to_hash->push_back(arg);
+    }
+  }
 
   bool put_result_in_manifest = false;
   std::optional<Hash::Digest> result_key;
   std::optional<Hash::Digest> result_key_from_manifest;
   std::optional<Hash::Digest> manifest_key;
+
+  Args& args_to_hash = ctx.config.conan_paths().empty() ? original_args_to_hash
+                                                        : *modified_args_to_hash;
 
   if (ctx.config.direct_mode()) {
     LOG_RAW("Trying direct lookup");

@@ -109,6 +109,8 @@ enum class ConfigItem {
   stats_log,
   temporary_dir,
   umask,
+  conanfile,
+  conan_paths,
 };
 
 enum class ConfigKeyType { normal, alias };
@@ -166,6 +168,8 @@ const std::unordered_map<std::string, ConfigKeyTableEntry> k_config_key_table =
     {"stats_log", {ConfigItem::stats_log}},
     {"temporary_dir", {ConfigItem::temporary_dir}},
     {"umask", {ConfigItem::umask}},
+    {"conanfile", {ConfigItem::conanfile}},
+    {"conan_paths", {ConfigItem::conan_paths}},
 };
 
 const std::unordered_map<std::string, std::string> k_env_variable_table = {
@@ -215,6 +219,8 @@ const std::unordered_map<std::string, std::string> k_env_variable_table = {
   {"STATSLOG", "stats_log"},
   {"TEMPDIR", "temporary_dir"},
   {"UMASK", "umask"},
+  {"CONANFILE", "conanfile"},
+  {"CONAN_PATHS", "conan_paths"},
 };
 
 bool
@@ -759,6 +765,12 @@ Config::get_string_value(const std::string& key) const
   case ConfigItem::compiler_check:
     return m_compiler_check;
 
+  case ConfigItem::conan_paths:
+    return m_conan_paths;
+
+  case ConfigItem::conanfile:
+    return m_conanfile;
+
   case ConfigItem::compiler_type:
     return compiler_type_to_string(m_compiler_type);
 
@@ -971,6 +983,22 @@ Config::set_item(const std::string& key,
   switch (it->second.item) {
   case ConfigItem::absolute_paths_in_stderr:
     m_absolute_paths_in_stderr = parse_bool(value, env_var_key, negate);
+    break;
+
+  case ConfigItem::conanfile:
+    m_conanfile = value;
+    if (!m_conanfile.empty()) {
+      verify_absolute_path(m_conanfile);
+      m_conanfile = Util::normalize_abstract_absolute_path(m_conanfile);
+    }
+    break;
+
+  case ConfigItem::conan_paths:
+    m_conan_paths = value;
+    if (!m_conan_paths.empty()) {
+      verify_absolute_path(m_conan_paths);
+      m_conan_paths = Util::normalize_abstract_absolute_path(m_conan_paths);
+    }
     break;
 
   case ConfigItem::base_dir:
