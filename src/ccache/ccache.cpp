@@ -374,7 +374,7 @@ remember_include_file(Context& ctx,
   Hash::Digest file_digest;
 
   const bool is_pch = is_precompiled_header(path);
-  if (is_pch && !ctx.args_info.generating_pch) {
+  if (is_pch && !ctx.args_info.generating_pch ) {
     if (ctx.args_info.included_pch_file.empty()) {
       LOG("Detected use of precompiled header: {}", path);
     }
@@ -383,6 +383,7 @@ remember_include_file(Context& ctx,
       // hash pch.sum instead of pch when it exists
       // to prevent hashing a very large .pch file every time
       std::string pch_sum_path = FMT("{}.sum", path);
+      LOG("Looking for PCH sum file at: {}", pch_sum_path);
       if (DirEntry(pch_sum_path, DirEntry::LogOnError::yes).is_regular_file()) {
         path = std::move(pch_sum_path);
         using_pch_sum = true;
@@ -2617,9 +2618,10 @@ do_cache_compilation(Context& ctx)
     for (auto i = 0ull; i < original_args_to_hash.size(); ++i) {
       auto arg = original_args_to_hash[i];
       std::replace(arg.begin(), arg.end(), '\\', '/');
-      for(const auto& pth : *conan_paths) {
+      for(const auto& [pth, package_id] : *conan_paths) {
+        LOG("conan_file: {} : {}", pth, package_id);
         if(arg.find(pth) != std::string::npos) {
-          arg = arg.replace(arg.find(pth), pth.length(), "{conan_package}");
+          arg = arg.replace(arg.find(pth), pth.length(), package_id);
           LOG("conan_paths: replaced {} with {}", original_args_to_hash[i], arg);
           break;
         }

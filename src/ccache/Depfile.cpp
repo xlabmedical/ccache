@@ -124,7 +124,7 @@ rewrite_source_paths(const Context& ctx, std::string_view file_content)
   }
 }
 
-std::optional<std::vector<std::string>>
+std::optional<std::map<std::string, std::string>>
 read_conan_paths_contents(const Context& ctx)
 {
   ASSERT(!ctx.config.conan_paths().empty());
@@ -132,16 +132,26 @@ read_conan_paths_contents(const Context& ctx)
   std::ifstream input_file(ctx.config.conan_paths());
   ASSERT(input_file.is_open());
 
-  std::vector<std::string> result;
-  result.reserve(10);
+  std::map<std::string, std::string> result;
 
   std::string line;
   while (std::getline(input_file, line)) {
     if (line.find("PACKAGE_DIR") != std::string::npos) {
-      size_t start_pos = line.find('\"') + 1; // Start position after the quote
-      size_t end_pos = line.find_last_of('\"');
+      // Extract the package path
+      auto start_pos = line.find('\"') + 1; // Start position after the quote
+      auto end_pos = line.find_last_of('\"');
       std::string path = line.substr(start_pos, end_pos - start_pos);
-      result.push_back(path);
+
+      // Extract the package name
+      end_pos = line.find('\"') - 1;
+      start_pos = 4; // Skip the 'set(
+      std::string package_name = line.substr(start_pos, end_pos - start_pos);
+
+      // Append the conanfile checksum
+      auto package_id =
+        package_name.append("_").append(ctx.config.conanfile_hash());
+
+      result.emplace(path, package_id);
     }
   }
 

@@ -94,7 +94,9 @@ Hash::hash(const char* data, size_t size)
 Hash&
 Hash::hash(std::string_view data)
 {
+  //LOG("Hashing: {}", data);
   hash(util::to_span(data));
+  //LOG("Hash value: {}", util::format_digest(digest()));
   return *this;
 }
 

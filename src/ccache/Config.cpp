@@ -43,6 +43,8 @@
 #  include <unistd.h>
 #endif
 
+#include "hashutil.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -990,6 +992,11 @@ Config::set_item(const std::string& key,
     if (!m_conanfile.empty()) {
       verify_absolute_path(m_conanfile);
       m_conanfile = Util::normalize_abstract_absolute_path(m_conanfile);
+
+      const auto data = util::read_file<std::string>(m_conanfile);
+      Hash hash;
+      hash.hash(*data);
+      m_conanfile_hash = util::format_digest(hash.digest());
     }
     break;
 
